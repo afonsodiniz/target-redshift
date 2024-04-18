@@ -210,7 +210,7 @@ class RedshiftSink(SQLSink):
         except:
             pass
         records = [
-            {key: str(value).replace("'", '"').replace("None", "") for key, value in record.items()}
+            {key: str(value).replace("None", "") for key, value in record.items()}
             for record in records
         ]
         with open(self.path, "w", encoding="utf-8", newline="") as fp:
