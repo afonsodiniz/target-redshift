@@ -125,14 +125,18 @@ class RedshiftSink(SQLSink):
             )
             self.logger.info(f'merging {len(context["records"])} records into {table}')
             # Merge data from temp table to main table
-            self.upsert(
-                from_table=temp_table,
-                to_table=table,
-                schema=self.schema,
-                join_keys=self.key_properties,
-                cursor=cursor,
-            )
+            # self.upsert(
+            #     from_table=temp_table,
+            #     to_table=table,
+            #     schema=self.schema,
+            #     join_keys=self.key_properties,
+            #     cursor=cursor,
+            # )
             # clean_resources
+
+            # try to insert from temp to final
+            self.insert_from_temp_to_final(temp_table, table, cursor)
+
         self.clean_resources()
 
     def bulk_insert_records(  # type: ignore[override]
@@ -163,6 +167,26 @@ class RedshiftSink(SQLSink):
         self.copy_to_s3()
         self.copy_to_redshift(table, cursor)
         return True
+
+    def insert_from_temp_to_final(self, from_table: sqlalchemy.Table, to_table: sqlalchemy.Table, cursor: Cursor):
+        """
+        Inserts records from a temporary table to the final table.
+
+        Args:
+            from_table (sqlalchemy.Table): The temporary table containing the data to insert.
+            to_table (sqlalchemy.Table): The final table where data should be inserted.
+            cursor (Cursor): Database cursor for executing SQL commands.
+        """
+        # Construct the SQL statement to insert data from the temporary table to the final table.
+        # Assuming that the structures of both tables are identical.
+        insert_sql = f"""
+        INSERT INTO {self.connector.quote(str(to_table))}
+        SELECT * FROM {self.connector.quote(str(from_table))}
+        """
+        
+        # Execute the SQL command.
+        cursor.execute(insert_sql)
+        self.logger.info(f"Inserted records from {from_table} into {to_table}.")
 
     def upsert(
         self,
@@ -254,6 +278,8 @@ class RedshiftSink(SQLSink):
             {copy_options}
             CSV QUOTE AS ''''
         """
+        self.logger.info(f'COPY COMMAND ------- {copy_sql}')
+
         cursor.execute(copy_sql)
 
     def _parse_timestamps_in_record(
