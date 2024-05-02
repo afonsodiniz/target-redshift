@@ -199,48 +199,44 @@ class RedshiftSink(SQLSink):
         cursor.execute(insert_sql)
         self.logger.info(f"Inserted records from {from_table} into {to_table}.")
 
-    def upsert(
-        self,
-        from_table: sqlalchemy.Table,
-        to_table: sqlalchemy.Table,
-        join_keys: list[str],
-        cursor: Cursor,
-    ) -> int | None:
-        """Merge upsert data from one table to another.
+    # def upsert(
+    #     self,
+    #     from_table: sqlalchemy.Table,
+    #     to_table: sqlalchemy.Table,
+    #     schema: dict,
+    #     join_keys: List[str],
+    #     cursor: Cursor,
+    # ) -> Optional[int]:
+    #     """Merge upsert data from one table to another.
 
-        Args:
-            from_table: The source table.
-            to_table: The destination table.
-            schema: Singer Schema message.
-            join_keys: The merge upsert keys, or `None` to append.
-            cursor: The database cursor.
+    #     Args:
+    #         from_table: The source table.
+    #         to_table: The destination table.
+    #         schema: Singer Schema message.
+    #         join_keys: The merge upsert keys, or `None` to append.
+    #         cursor: The database cursor.
 
-        Return:
-            The number of records copied, if detectable, or `None` if the API does not
-            report number of records affected/inserted.
+    #     Return:
+    #         The number of records copied, if detectable, or `None` if the API does not
+    #         report number of records affected/inserted.
 
-        """
-        join_predicates = []
-        to_table_key: sqlalchemy.Column
-        for key in join_keys:
-            from_table_key: sqlalchemy.Column = from_table.columns[key]
-            to_table_key = to_table.columns[key]
-            join_predicates.append(from_table_key == to_table_key)
+    #     """
+    #     join_predicates = []
+    #     to_table_key: sqlalchemy.Column
+    #     for key in join_keys:
+    #         from_table_key: sqlalchemy.Column = from_table.columns[key]
+    #         to_table_key = to_table.columns[key]
+    #         join_predicates.append(from_table_key == to_table_key)
 
-        join_condition = sqlalchemy.and_(*join_predicates)
-        if len(join_keys) > 0:
-            sql = f"""
-                MERGE INTO {self.connector.quote(str(to_table))}
-                USING {self.connector.quote(str(from_table))}
-                ON {join_condition}
-                REMOVE DUPLICATES
-                """
-        else:
-            sql = f"""
-                INSERT INTO {self.connector.quote(str(to_table))}
-                SELECT * FROM {self.connector.quote(str(from_table))}
-                """  # noqa: S608
-        cursor.execute(sql)
+    #     join_condition = sqlalchemy.and_(*join_predicates)
+    #     merge_sql = f"""
+    #         MERGE INTO {self.connector.quote(str(to_table))}
+    #         USING {self.connector.quote(str(from_table))}
+    #         ON {join_condition}
+    #         REMOVE DUPLICATES
+    #         """
+    #     cursor.execute(merge_sql)
+    #     return None
 
     def write_csv(self, records: list[dict]) -> None:
         """Write records to a local csv file.
@@ -319,7 +315,6 @@ class RedshiftSink(SQLSink):
             {copy_options}
             CSV
         """
-        self.logger.info(f'COPY COMMAND ------- {copy_sql}')
 
         cursor.execute(copy_sql)
 
