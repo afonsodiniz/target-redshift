@@ -113,6 +113,9 @@ class RedshiftSink(SQLSink):
             self.file = f"{self.stream_name}-{self.temp_table_name}.csv"
             self.path = os.path.join(self.config["temp_dir"], self.file)
             self.object = os.path.join(self.config["s3_key_prefix"], self.file)
+
+            self.logger.info(f'bulk insert {len(context["records"])} records into {temp_table}')
+
             self.bulk_insert_records(
                 table=temp_table,
                 schema=self.schema,
@@ -120,15 +123,15 @@ class RedshiftSink(SQLSink):
                 records=context["records"],
                 cursor=cursor,
             )
-            self.logger.info(f'merging {len(context["records"])} records into {table}')
-            # Merge data from temp table to main table
-            self.upsert(
-                from_table=temp_table,
-                to_table=table,
-                schema=self.schema,
-                join_keys=self.key_properties,
-                cursor=cursor,
-            )
+            # self.logger.info(f'merging {len(context["records"])} records into {table}')
+            # # Merge data from temp table to main table
+            # self.upsert(
+            #     from_table=temp_table,
+            #     to_table=table,
+            #     schema=self.schema,
+            #     join_keys=self.key_properties,
+            #     cursor=cursor,
+            # )
             # clean_resources
         self.clean_resources()
 
