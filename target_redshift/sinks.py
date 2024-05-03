@@ -134,7 +134,7 @@ class RedshiftSink(SQLSink):
                 records=context["records"],
                 cursor=cursor,
             )
-            self.logger.info(f'merging {len(context["records"])} records into {table}')
+            # self.logger.info(f'merging {len(context["records"])} records into {table}')
             # Merge data from temp table to main table
             # self.upsert(
             #     from_table=temp_table,
