@@ -176,6 +176,9 @@ class RedshiftSink(SQLSink):
         msg = f'writing {len(records)} records to s3://{self.config["s3_bucket"]}/{self.object}'
         self.logger.info(msg)
         self.copy_to_s3()
+
+        self.logger.info(f'COPY TO REDSHIFT VARIABLES {vars(table)}')
+
         self.copy_to_redshift(table, cursor)
         return True
 
