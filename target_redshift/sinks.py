@@ -162,19 +162,20 @@ class RedshiftSink(SQLSink):
         Returns:
             True if table exists, False if not, None if unsure or undetectable.
         """
+        self.logger.info(f'BEFORE WRITE_CSV')
         self.write_csv(records)
-
-        # ver se a temp_table tem PK, e se o problem vem dai
+        self.logger.info(f'AFTER WRITE_CSV')
 
         
-        self.logger.info(f'SELF VARIABLES {vars(self)}')
-        self.logger.info(f'SELF VARIABLES {vars(self)}')
+
+        
         self.logger.info(f'writing {len(records)} records to s3://{self.config["s3_bucket"]}/{self.object}')
         self.copy_to_s3()
 
-        self.logger.info(f'COPY TO REDSHIFT VARIABLES {vars(table)}')
-
+        self.logger.info(f'BEFORE copy_to_redshift')
         self.copy_to_redshift(table, cursor)
+        self.logger.info(f'AFTER copy_to_redshift')
+
         return True
 
     def insert_from_temp_to_final(self, from_table: sqlalchemy.Table, to_table: sqlalchemy.Table, cursor: Cursor):
