@@ -163,8 +163,17 @@ class RedshiftSink(SQLSink):
             True if table exists, False if not, None if unsure or undetectable.
         """
         self.write_csv(records)
+
+        # ver se a temp_table tem PK, e se o problem vem dai
+
+        
+        self.logger.info(f'SELF VARIABLES {vars(self)}')
+        self.logger.info(f'SELF VARIABLES {vars(self)}')
         self.logger.info(f'writing {len(records)} records to s3://{self.config["s3_bucket"]}/{self.object}')
         self.copy_to_s3()
+
+        self.logger.info(f'COPY TO REDSHIFT VARIABLES {vars(table)}')
+
         self.copy_to_redshift(table, cursor)
         return True
 
