@@ -262,6 +262,11 @@ class RedshiftSink(SQLSink):
             writer.writerows(records)
 
     def copy_to_s3(self):
+    
+        self.logger.info(f'PRINTTTT')
+        for attribute, value in vars(self).items():
+            print(f"{attribute}: {value}")
+
         self.logger.info(f'LOG S3_BUCKET_VAR')
         self.logger.info(self.config["s3_bucket"])
         self.logger.info(f'LOG SELF_PATH')
