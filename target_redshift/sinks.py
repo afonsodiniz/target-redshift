@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import csv
+import datetime
+import json
 import os
 import uuid
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterable
+from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
 
 import boto3
 import simplejson as json
@@ -24,7 +26,7 @@ from singer_sdk.helpers._typing import (
 )
 from singer_sdk.sinks import SQLSink
 
-from target_redshift.connector import RedshiftConnector
+from .connector import RedshiftConnector
 
 if TYPE_CHECKING:
     from redshift_connector import Cursor
@@ -289,14 +291,17 @@ class RedshiftSink(SQLSink):
             )
             writer.writerows(records)
 
-    def copy_to_s3(self) -> None:
-        """Copy the csv file to s3."""
+    def copy_to_s3(self):
+        
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        path_parts = self.object.split('/')
+        path_parts.insert(-1, today)
+        new_object_key = '/'.join(path_parts)
+
         try:
-            _ = self.s3_client.upload_file(
-                self.path, self.config["s3_bucket"], self.object
-            )
-        except ClientError:
-            self.logger.exception()
+            _ = self.s3_client.upload_file(self.path, self.config["s3_bucket"], new_object_key)
+        except ClientError as e:
+            self.logger.error(e)
 
     def copy_to_redshift(self, table: sqlalchemy.Table, cursor: Cursor) -> None:
         """Copy the s3 csv file to redshift."""
