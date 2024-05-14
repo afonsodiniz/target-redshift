@@ -262,6 +262,10 @@ class RedshiftSink(SQLSink):
             writer.writerows(records)
 
     def copy_to_s3(self):
+        self.logger.info(f'LOG S3_BUCKET_VAR')
+        self.logger.info(self.config["s3_bucket"])
+        self.logger.info(f'LOG S3_BUCKET_VAR')
+
         try:
             _ = self.s3_client.upload_file(self.path, self.config["s3_bucket"], self.object)
         except ClientError as e:
