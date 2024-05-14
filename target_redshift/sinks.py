@@ -264,7 +264,10 @@ class RedshiftSink(SQLSink):
     def copy_to_s3(self):
         self.logger.info(f'LOG S3_BUCKET_VAR')
         self.logger.info(self.config["s3_bucket"])
-        self.logger.info(f'LOG S3_BUCKET_VAR')
+        self.logger.info(f'LOG SELF_PATH')
+        self.logger.info(self.path)
+        self.logger.info(f'LOG SELF_OBJECT')
+        self.logger.info(self.object)
 
         try:
             _ = self.s3_client.upload_file(self.path, self.config["s3_bucket"], self.object)
