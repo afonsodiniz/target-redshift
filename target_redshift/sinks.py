@@ -11,6 +11,7 @@ import boto3
 from .connector import RedshiftConnector
 from typing import List, Any, Iterable, Dict, Optional
 from botocore.exceptions import ClientError
+import datetime
 
 from singer_sdk.helpers._compat import (
     date_fromisoformat,
@@ -262,7 +263,11 @@ class RedshiftSink(SQLSink):
             writer.writerows(records)
 
     def copy_to_s3(self):
-    
+        
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        path_parts = self.object.split('/')
+        path_parts.insert(-1, today)
+        new_object_key = '/'.join(path_parts)
 
         self.logger.info(f'LOG S3_BUCKET_VAR')
         self.logger.info(self.config["s3_bucket"])
@@ -270,9 +275,11 @@ class RedshiftSink(SQLSink):
         self.logger.info(self.path)
         self.logger.info(f'LOG SELF_OBJECT')
         self.logger.info(self.object)
-
+        self.logger.info(f'LOG new_object_key')
+        self.logger.info(new_object_key)
+        
         try:
-            _ = self.s3_client.upload_file(self.path, self.config["s3_bucket"], self.object)
+            _ = self.s3_client.upload_file(self.path, self.config["s3_bucket"], new_object_key)
         except ClientError as e:
             self.logger.error(e)
 
