@@ -178,10 +178,16 @@ class RedshiftSink(SQLSink):
         self.write_csv(records)
         msg = f'writing {len(records)} records to s3://{self.config["s3_bucket"]}/{self.object}'
         self.logger.info(msg)
-        self.copy_to_s3()
+
+        today = datetime.datetime.now().strftime("%Y-%m-%d")
+        path_parts = self.object.split('/')
+        path_parts.insert(-1, today)
+        new_object_key = '/'.join(path_parts)
+
+        self.copy_to_s3(new_object_key)
 
         self.logger.info(f'BEFORE copy_to_redshift')
-        self.copy_to_redshift(table, cursor)
+        self.copy_to_redshift(table, cursor, new_object_key)
         self.logger.info(f'AFTER copy_to_redshift')
 
         return True
@@ -291,22 +297,32 @@ class RedshiftSink(SQLSink):
             )
             writer.writerows(records)
 
-    def copy_to_s3(self):
+    def copy_to_s3(self, new_object_key):
         
-        today = datetime.datetime.now().strftime("%Y-%m-%d")
-        path_parts = self.object.split('/')
-        path_parts.insert(-1, today)
-        new_object_key = '/'.join(path_parts)
+        # today = datetime.datetime.now().strftime("%Y-%m-%d")
+        # path_parts = self.object.split('/')
+        # path_parts.insert(-1, today)
+        # new_object_key = '/'.join(path_parts)
+
+        # self.logger.info(f'LOG S3_BUCKET_VAR')
+        # self.logger.info(self.config["s3_bucket"])
+        # self.logger.info(f'LOG SELF_PATH')
+        # self.logger.info(self.path)
+        # self.logger.info(f'LOG SELF_OBJECT')
+        # self.logger.info(self.object)
+        # self.logger.info(f'LOG new_object_key')
+        # self.logger.info(new_object_key)
 
         try:
             _ = self.s3_client.upload_file(self.path, self.config["s3_bucket"], new_object_key)
         except ClientError as e:
             self.logger.error(e)
 
-    def copy_to_redshift(self, table: sqlalchemy.Table, cursor: Cursor) -> None:
+    def copy_to_redshift(self, table: sqlalchemy.Table, cursor: Cursor, new_object_key):
         """Copy the s3 csv file to redshift."""
         copy_credentials = f"IAM_ROLE '{self.config['aws_redshift_copy_role_arn']}'"
-
+        
+        self.logger.info(f'INSIDE copy_to_redshift')
         # Step 3: Generate copy options - Override defaults from config.json if defined
         copy_options = self.config.get(
             "copy_options",
@@ -320,7 +336,7 @@ class RedshiftSink(SQLSink):
         # Step 4: Load into the stage table
         copy_sql = f"""
             COPY {self.connector.quote(str(table))} ({columns})
-            FROM 's3://{self.config["s3_bucket"]}/{self.object}'
+            FROM 's3://{self.config["s3_bucket"]}/{new_object_key}' 
             {copy_credentials}
             {copy_options}
             CSV
