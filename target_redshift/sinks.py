@@ -129,33 +129,23 @@ class RedshiftSink(SQLSink):
             self.path = os.path.join(self.config["temp_dir"], self.file)
             self.object = os.path.join(self.config["s3_key_prefix"], self.file)
 
-            self.logger.info(f'bulk insert {len(context["records"])} records into {temp_table}')
 
-            # self.bulk_insert_records(
-            #     table=temp_table,
-            #     schema=self.schema,
-            #     primary_keys=self.key_properties,
-            #     records=context["records"],
-            #     cursor=cursor,
-            # )
+            if 'incremental' in self.full_table_name:
+                self.logger.info(f'merging {len(context["records"])} records into {table}')
+                # Merge data from temp table to main table
+                self.upsert(
+                    from_table=temp_table,
+                    to_table=table,
+                    schema=self.schema,
+                    join_keys=self.key_properties,
+                    cursor=cursor,
+                )
 
-            # if incremental
-            # then
-            # self.logger.info(f'merging {len(context["records"])} records into {table}')
-            # Merge data from temp table to main table
-            # self.upsert(
-            #     from_table=temp_table,
-            #     to_table=table,
-            #     schema=self.schema,
-            #     join_keys=self.key_properties,
-            #     cursor=cursor,
-            # )
-            # clean_resources
+            else:
+                self.logger.info(f'bulk insert {len(context["records"])} records into {temp_table}')
+                self.insert_from_temp_to_final(temp_table, table, cursor)
 
-            # try to insert from temp to final
-            # self.insert_from_temp_to_final(temp_table, table, cursor)
-
-        # self.clean_resources()
+        self.clean_resources()
 
     def bulk_insert_records(  # type: ignore[override]
         self,
