@@ -119,7 +119,10 @@ class RedshiftSink(SQLSink):
             self.file = f"{self.stream_name}-{self.temp_table_name}.csv"
             self.path = os.path.join(self.config["temp_dir"], self.file)
             self.object = os.path.join(self.config["s3_key_prefix"], self.file)
-            
+            self.logger.info(f'////////////////////////// s3_key_prefix  --------> {self.config["temp_dir"]} //////////////////////////')
+            self.logger.info(f'////////////////////////// path  --------> {self.path} //////////////////////////')
+
+
             self.bulk_insert_records(
                 table=temp_table,
                 schema=self.schema,
