@@ -129,7 +129,14 @@ class RedshiftSink(SQLSink):
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path = os.path.join(self.config["temp_dir"], self.file)
             self.object = os.path.join(self.config["s3_key_prefix"], self.file)
-
+            
+            self.bulk_insert_records(
+                table=temp_table,
+                schema=self.schema,
+                primary_keys=self.key_properties,
+                records=context["records"],
+                cursor=cursor,
+            )
 
             if re.search(r'incremental', self.full_table_name, re.IGNORECASE):
                 self.logger.info(f'ENTERED ON IF')
