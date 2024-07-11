@@ -347,7 +347,7 @@ class RedshiftSink(SQLSink):
                 record[key] = date_val
 
     def clean_resources(self):
-        os.remove(self.path)
+        # os.remove(self.path)
         if self.config["remove_s3_files"]:
             try:
                 _ = self.s3_client.delete_object(Bucket=self.config["s3_bucket"], Key=self.object)
