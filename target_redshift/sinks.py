@@ -153,9 +153,9 @@ class RedshiftSink(SQLSink):
             # clean_resources
 
             # try to insert from temp to final
-            self.insert_from_temp_to_final(temp_table, table, cursor)
+            # self.insert_from_temp_to_final(temp_table, table, cursor)
 
-        self.clean_resources()
+        # self.clean_resources()
 
     def bulk_insert_records(  # type: ignore[override]
         self,
