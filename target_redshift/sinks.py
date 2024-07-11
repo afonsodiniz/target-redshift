@@ -131,11 +131,16 @@ class RedshiftSink(SQLSink):
 
             self.logger.info(f'bulk insert {len(context["records"])} records into {temp_table}')
 
-            self.bulk_insert_records(
-                table=temp_table,
-                records=context["records"],
-                cursor=cursor,
-            )
+            # self.bulk_insert_records(
+            #     table=temp_table,
+            #     schema=self.schema,
+            #     primary_keys=self.key_properties,
+            #     records=context["records"],
+            #     cursor=cursor,
+            # )
+
+            # if incremental
+            # then
             # self.logger.info(f'merging {len(context["records"])} records into {table}')
             # Merge data from temp table to main table
             # self.upsert(
