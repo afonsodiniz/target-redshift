@@ -101,9 +101,6 @@ class RedshiftSink(SQLSink):
         """
         # If duplicates are merged, these can be tracked via
         # :meth:`~singer_sdk.Sink.tally_duplicate_merged()`.
-        
-        # self.logger.info(f'bulk insert {len(context["records"])} records into {temp_table}')
-        self.logger.info(f'////////////////////////// TABLE NAME --------> {self.full_table_name} //////////////////////////')
 
         with self.connector._connect_cursor() as cursor:
             # Get target table
@@ -119,8 +116,6 @@ class RedshiftSink(SQLSink):
             self.file = f"{self.stream_name}-{self.temp_table_name}.csv"
             self.path = os.path.join(self.config["temp_dir"], self.file)
             self.object = os.path.join(self.config["s3_key_prefix"], self.file)
-            self.logger.info(f'////////////////////////// s3_key_prefix  --------> {self.config["temp_dir"]} //////////////////////////')
-            self.logger.info(f'////////////////////////// path  --------> {self.path} //////////////////////////')
 
 
             self.bulk_insert_records(
@@ -132,7 +127,6 @@ class RedshiftSink(SQLSink):
             )
 
             if re.search(r'incremental', self.full_table_name, re.IGNORECASE):
-                self.logger.info(f'ENTERED ON IF')
                 self.logger.info(f'merging {len(context["records"])} records into {table}')
                 # Merge data from temp table to main table
                 self.upsert(
@@ -144,8 +138,7 @@ class RedshiftSink(SQLSink):
                 )
 
             else:
-                self.logger.info(f'ENTERED ON ELSE')
-                self.logger.info(f'bulk insert {len(context["records"])} records into {temp_table}')
+                self.logger.info(f'bulk insert {len(context["records"])} records into {table}')
                 self.insert_from_temp_to_final(temp_table, table, cursor)
 
         self.clean_resources()
