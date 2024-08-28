@@ -163,6 +163,7 @@ class RedshiftSink(SQLSink):
         path_parts.insert(-1, today)
         new_object_key = '/'.join(path_parts)
         
+        self.logger.info(f'writing {len(records)} records to s3://{self.config["s3_bucket"]}/{new_object_key}')
 
         self.copy_to_s3(new_object_key)
         self.copy_to_redshift(table, cursor, new_object_key)
