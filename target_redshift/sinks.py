@@ -124,7 +124,7 @@ class RedshiftSink(SQLSink):
                 as_temp_table=True,
                 cursor=cursor,
             )
-            # Insert into temp table
+            # Insert delta rows to .csv file in bucket
             self.file = f"{self.stream_name}-{self.temp_table_name}.csv"
             self.path.parent.mkdir(parents=True, exist_ok=True)
             self.path = os.path.join(self.config["temp_dir"], self.file)
@@ -139,20 +139,9 @@ class RedshiftSink(SQLSink):
                 cursor=cursor,
             )
 
-            if re.search(r'incremental', self.full_table_name, re.IGNORECASE):
-                self.logger.info(f'merging {len(context["records"])} records into {table}')
-                # Merge data from temp table to main table
-                self.upsert(
-                    from_table=temp_table,
-                    to_table=table,
-                    schema=self.schema,
-                    join_keys=self.key_properties,
-                    cursor=cursor,
-                )
-
-            else:
-                self.logger.info(f'bulk insert {len(context["records"])} records into {table}')
-                self.insert_from_temp_to_final(temp_table, table, cursor)
+            # Insert delta rows from .csv file to final table
+            self.logger.info(f'bulk insert {len(context["records"])} records into {table}')
+            self.insert_from_temp_to_final(temp_table, table, cursor)
 
         self.clean_resources()
 
@@ -186,7 +175,6 @@ class RedshiftSink(SQLSink):
         path_parts.insert(-1, today)
         new_object_key = '/'.join(path_parts)
         
-        self.logger.info(f'writing {len(records)} records to s3://{self.config["s3_bucket"]}/{new_object_key}')
 
         self.copy_to_s3(new_object_key)
         self.copy_to_redshift(table, cursor, new_object_key)
