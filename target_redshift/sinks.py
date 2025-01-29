@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import csv
 import datetime
-import json
 import os
+import re
 import uuid
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional
@@ -30,8 +30,6 @@ from .connector import RedshiftConnector
 
 if TYPE_CHECKING:
     from redshift_connector import Cursor
-
-import re
 
 class RedshiftSink(SQLSink):
     """Redshift target sink class."""
@@ -268,14 +266,7 @@ class RedshiftSink(SQLSink):
             if "object" in value["type"] or "array" in value["type"]
         ]
         records = [
-            {
-                key: (
-                    json.dumps(value).replace("None", "")
-                    if key in object_keys
-                    else value
-                )
-                for key, value in record.items()
-            }
+            {key: str(value).replace("None", "") for key, value in record.items()}
             for record in records
         ]
         with self.path.open("w", encoding="utf-8", newline="") as fp:
