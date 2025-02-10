@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
-from pathlib import PurePath
+from typing import TYPE_CHECKING
 
 from singer_sdk import typing as th
 from singer_sdk.target_base import SQLTarget
 
 from target_redshift.sinks import RedshiftSink
+
+if TYPE_CHECKING:
+    from pathlib import PurePath
 
 
 class TargetRedshift(SQLTarget):
@@ -18,8 +21,8 @@ class TargetRedshift(SQLTarget):
     def __init__(
         self,
         config: dict | PurePath | str | list[PurePath | str] | None = None,
-        parse_env_config: bool = False,
-        validate_config: bool = True,
+        parse_env_config: bool = False,  # noqa: FBT001, FBT002
+        validate_config: bool = True,  # noqa: FBT001, FBT002
     ) -> None:
         """Initialize the target.
 
@@ -37,39 +40,16 @@ class TargetRedshift(SQLTarget):
             parse_env_config=parse_env_config,
             validate_config=validate_config,
         )
-        # There's a few ways to do this in JSON Schema but it is schema draft dependent.
-        # https://stackoverflow.com/questions/38717933/jsonschema-attribute-conditionally-required # noqa: E501
-        assert (
-            (self.config.get("sqlalchemy_url") is not None)
-            or (
-                self.config.get("host") is not None
-                and self.config.get("port") is not None
-                and self.config.get("user") is not None
-                and self.config.get("password") is not None
-            )
-            or (
-                self.config.get("host") is not None
-                and self.config.get("port") is not None
-                and self.config.get("user") is not None
-                and self.config.get("enable_iam_authentication") is not None
-                and self.config.get("cluster_identifier") is not None
-            )
-        ), ("Need either the sqlalchemy_url to be set or host, port, user," + "password, and dialect+driver to be set")
 
-        # If sqlalchemy_url is not being used and ssl_enable is on, ssl_mode must have
-        # one of six allowable values. If ssl_mode is verify-ca or verify-full, a
-        # certificate authority must be provided to verify against.
-        assert (
-            (self.config.get("sqlalchemy_url") is not None)
-            or (self.config.get("ssl_enable") is False)
-            or (self.config.get("ssl_mode") in {"disable", "allow", "prefer", "require"})
-        )
-
-        assert self.config.get("add_record_metadata") or not self.config.get("activate_version"), (
+        assert self.config.get("add_record_metadata") or not self.config.get(  # noqa: S101
+            "activate_version"
+        ), (
             "Activate version messages can't be processed unless add_record_metadata "
             "is set to true. To ignore Activate version messages instead, Set the "
             "`activate_version` configuration to False."
         )
+
+        assert self.config.get("s3_bucket") is not None  # noqa: S101
 
     name = "target-redshift"
 
@@ -77,67 +57,58 @@ class TargetRedshift(SQLTarget):
         th.Property(
             "host",
             th.StringType,
-            description=("Hostname for redshift instance. Note if sqlalchemy_url is set this will be ignored."),
+            description=(
+                "Hostname for redshift instance."
+            ),
         ),
         th.Property(
             "port",
             th.StringType,
             default="5432",
             description=(
-                "The port on which redshift is awaiting connection. "
-                + "Note if sqlalchemy_url is set this will be ignored."
+                "The port on which redshift is awaiting connection."
             ),
         ),
         th.Property(
             "enable_iam_authentication",
             th.BooleanType,
             description=(
-                "If true, use temporary credentials (https://docs.aws.amazon.com/redshift/latest/mgmt/generating-iam-credentials-cli-api.html). Note if sqlalchemy_url is set this will be ignored."
+                "If true, use temporary credentials "
+                "(https://docs.aws.amazon.com/redshift/latest/mgmt/generating-iam-credentials-cli-api.html)."
             ),
+            title="Enable IAM Authentication",
         ),
         th.Property(
             "cluster_identifier",
             th.StringType,
             description=(
-                "Redshift cluster identifier. Note if sqlalchemy_url is set or enable_iam_authentication is false this will be ignored."
+                "Redshift cluster identifier. Note if sqlalchemy_url is set or "
+                "enable_iam_authentication is false this will be ignored."
             ),
         ),
         th.Property(
             "user",
             th.StringType,
-            description=("User name used to authenticate. Note if sqlalchemy_url is set this will be ignored."),
+            description=(
+                "User name used to authenticate. Note if sqlalchemy_url is set this "
+                "will be ignored."
+            ),
         ),
         th.Property(
             "password",
             th.StringType,
-            description=("Password used to authenticate. Note if sqlalchemy_url is set this will be ignored."),
+            description=(
+                "Password used to authenticate. Note if sqlalchemy_url is set this "
+                "will be ignored."
+            ),
         ),
         th.Property(
             "dbname",
             th.StringType,
-            description=("Database name. Note if sqlalchemy_url is set this will be ignored."),
-        ),
-        th.Property(
-            "sqlalchemy_url",
-            th.StringType,
             description=(
-                "SQLAlchemy connection string. "
-                + "This will override using host, user, password, port, "
-                + "dialect, and all ssl settings. Note that you must escape password "
-                + "special characters properly. See "
-                + "https://docs.sqlalchemy.org/en/20/core/engines.html#escaping-special-characters-such-as-signs-in-passwords"
+                "Database name. Note if sqlalchemy_url is set this will be ignored."
             ),
-        ),
-        th.Property(
-            "dialect+driver",
-            th.StringType,
-            default="redshift+redshift_connector",
-            description=(
-                "Dialect+driver see "
-                + "https://aws.amazon.com/blogs/big-data/use-the-amazon-redshift-sqlalchemy-dialect-to-interact-with-amazon-redshift. "
-                + "Generally just leave this alone. "
-                + "Note if sqlalchemy_url is set this will be ignored."
-            ),
+            title="Database Name",
         ),
         th.Property(
             "aws_redshift_copy_role_arn",
@@ -145,12 +116,22 @@ class TargetRedshift(SQLTarget):
             secret=True,  # Flag config as protected.
             required=True,
             description="Redshift copy role arn to use for the COPY command from s3",
+            title="AWS Redshift Copy Role ARN",
         ),
         th.Property(
             "s3_bucket",
             th.StringType,
             required=True,
             description="S3 bucket to save staging files before using COPY command",
+        ),
+        th.Property(
+            "s3_region",
+            th.StringType,
+            description=(
+                "AWS region for S3 bucket. If not specified, region will be "
+                "detected by boto config resolution. "
+                "See https://boto3.amazonaws.com/v1/documentation/api/latest/guide/configuration.html"
+            ),
         ),
         th.Property(
             "s3_key_prefix",
@@ -165,12 +146,15 @@ class TargetRedshift(SQLTarget):
             description="If you want to remove staging files in S3",
         ),
         th.Property(
-            "temp_dir", th.StringType, default="temp", description="Where you want to store your temp data files."
+            "temp_dir",
+            th.StringType,
+            default="temp",
+            description="Where you want to store your temp data files.",
         ),
         th.Property(
             "default_target_schema",
             th.StringType,
-            description="Redsdhift schema to send data to, example: tap-clickup",
+            description="Redshift schema to send data to, example: tap-clickup",
         ),
         th.Property(
             "activate_version",
@@ -178,7 +162,7 @@ class TargetRedshift(SQLTarget):
             default=False,
             description=(
                 "If set to false, the tap will ignore activate version messages. If "
-                + "set to true, add_record_metadata must be set to true as well."
+                "set to true, add_record_metadata must be set to true as well."
             ),
         ),
         th.Property(
@@ -187,9 +171,9 @@ class TargetRedshift(SQLTarget):
             default=False,
             description=(
                 "When activate version is sent from a tap this specefies "
-                + "if we should delete the records that don't match, or mark "
-                + "them with a date in the `_sdc_deleted_at` column. This config "
-                + "option is ignored if `activate_version` is set to false."
+                "if we should delete the records that don't match, or mark "
+                "them with a date in the `_sdc_deleted_at` column. This config "
+                "option is ignored if `activate_version` is set to false."
             ),
         ),
         th.Property(
@@ -198,9 +182,9 @@ class TargetRedshift(SQLTarget):
             default=False,
             description=(
                 "Note that this must be enabled for activate_version to work!"
-                + "This adds _sdc_extracted_at, _sdc_batched_at, and more to every "
-                + "table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html "  # noqa: E501
-                + "for more information."
+                "This adds _sdc_extracted_at, _sdc_batched_at, and more to every "
+                "table. See https://sdk.meltano.com/en/latest/implementation/record_metadata.html "  # noqa: E501
+                "for more information."
             ),
         ),
         th.Property(
@@ -209,10 +193,9 @@ class TargetRedshift(SQLTarget):
             default=False,
             description=(
                 "Whether or not to use ssl to verify the server's identity. Use"
-                + " ssl_certificate_authority and ssl_mode for further customization."
-                + " To use a client certificate to authenticate yourself to the server,"
-                + " use ssl_client_certificate_enable instead."
-                + " Note if sqlalchemy_url is set this will be ignored."
+                " ssl_certificate_authority and ssl_mode for further customization."
+                " To use a client certificate to authenticate yourself to the server,"
+                " use ssl_client_certificate_enable instead."
             ),
         ),
         th.Property(
@@ -220,10 +203,9 @@ class TargetRedshift(SQLTarget):
             th.StringType,
             default="verify-full",
             description=(
-                "SSL Protection method, see [postgres documentation](https://www.postgresql.org/docs/current/libpq-ssl.html#LIBPQ-SSL-PROTECTION)"
-                + " for more information. Must be one of disable, allow, prefer,"
-                + " require, verify-ca, or verify-full."
-                + " Note if sqlalchemy_url is set this will be ignored."
+                "SSL Protection method, see [redshift documentation](https://docs.aws.amazon.com/redshift/latest/mgmt/connecting-ssl-support.html"
+                " for more information. Must be one of disable, allow, prefer,"
+                " require, verify-ca, or verify-full."
             ),
         ),
     ).to_dict()
